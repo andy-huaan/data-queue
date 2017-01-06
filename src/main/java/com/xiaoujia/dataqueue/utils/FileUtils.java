@@ -1,5 +1,7 @@
 package com.xiaoujia.dataqueue.utils;
 
+import com.xiaoujia.dataqueue.core.LogAccessFile;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -31,12 +33,13 @@ public class FileUtils {
      * @return
      * @throws IOException
      */
-    public static RandomAccessFile getMarkerFile(String fileName) throws IOException {
+    public static RandomAccessFile getMarkerFile(String fileName, LogAccessFile logAccessFile) throws IOException {
         RandomAccessFile marker;
-        File markFile = new File(fileName + ".mark");
+        File markFile = new File(fileName + Constants.MARKER_SUFFIX);
         if (markFile.exists()) {
             if (markFile.isFile() && markFile.canRead() && markFile.canWrite()) {
                 marker = new RandomAccessFile(markFile, "rw");
+                logAccessFile.initCurrentLine(marker.readLong());
             } else {
                 throw new IOException(fileName + ".mark 此文件异常");
             }
@@ -56,6 +59,7 @@ public class FileUtils {
     public synchronized static void initMarker(RandomAccessFile marker, long count) throws IOException{
         //设置到此文件开头测量到的文件指针偏移量，在该位置发生下一个读取或写入操作
         marker.seek(0);
-        marker.writeBytes(count + "\r\n");
+        marker.writeLong(count);
+        //maker.writeBytes(count + "\r\n");
     }
 }

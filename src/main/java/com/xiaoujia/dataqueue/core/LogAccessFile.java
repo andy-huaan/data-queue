@@ -82,12 +82,7 @@ public class LogAccessFile {
         if (fileName.lastIndexOf('/') > 0) {
             FileUtils.mkdirs(fileName.substring(0, fileName.lastIndexOf('/')));
         }
-        this.marker = FileUtils.getMarkerFile(fileName);
-        String currentNumber = marker.readLine();
-        if(null != currentNumber) {
-            this.currentLine = Long.parseLong(currentNumber);
-        }
-
+        this.marker = FileUtils.getMarkerFile(fileName,this);
         //打开缓存文件
         this.currentFile = new File(fileName);
         this.fileWriter = new FileWriter(currentFile, true);
@@ -247,4 +242,13 @@ public class LogAccessFile {
     public void changeMarker() throws IOException {
         FileUtils.initMarker(marker,currentLine);
     }
+
+    /**
+     * 启动时，利用marker文件记录数，初始化currentLine
+     * @param currentLine
+     */
+    public void initCurrentLine(long currentLine){
+        this.currentLine = currentLine;
+    }
+
 }

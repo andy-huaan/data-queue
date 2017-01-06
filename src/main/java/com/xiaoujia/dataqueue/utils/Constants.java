@@ -16,4 +16,7 @@ public class Constants {
 
     //删除缓存文件(true:删除 false:保留，重命名)
     public static final boolean DELETE_LOG = false;
+
+    //marker文件后缀名(扩展名)
+    public static final String MARKER_SUFFIX = ".marker";
 }
