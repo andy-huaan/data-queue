@@ -83,7 +83,10 @@ public class LogAccessFile {
             FileUtils.mkdirs(fileName.substring(0, fileName.lastIndexOf('/')));
         }
         this.marker = FileUtils.getMarkerFile(fileName);
-        this.currentLine = Long.parseLong(marker.readLine());
+        String currentNumber = marker.readLine();
+        if(null != currentNumber) {
+            this.currentLine = Long.parseLong(currentNumber);
+        }
 
         //打开缓存文件
         this.currentFile = new File(fileName);
