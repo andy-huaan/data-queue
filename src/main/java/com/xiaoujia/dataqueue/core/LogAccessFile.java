@@ -240,6 +240,14 @@ public class LogAccessFile {
      * @throws IOException
      */
     public void changeMarker() throws IOException {
+        changeMarker(currentLine);
+    }
+
+    /**
+     * 更改marker计数器值
+     * @param currentLine
+     */
+    public void changeMarker(long currentLine) throws IOException{
         FileUtils.initMarker(marker,currentLine);
     }
 
@@ -251,4 +259,13 @@ public class LogAccessFile {
         this.currentLine = currentLine;
     }
 
+    /**
+     * 获取marker文件中值
+     * @return 已处理数据条数
+     * @throws IOException
+     */
+    public long getMarker() throws IOException {
+        marker.seek(0);
+        return marker.readLong();
+    }
 }

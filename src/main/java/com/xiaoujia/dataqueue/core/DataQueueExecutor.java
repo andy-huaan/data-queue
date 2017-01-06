@@ -167,4 +167,25 @@ public class DataQueueExecutor<T> implements Runnable {
 			}
 		}
 	}
+
+	/**
+	 * 获取marker文件中的值
+	 * @return 已处理数据条数
+	 * @throws IOException
+	 */
+	public long getMarker() throws IOException{
+		return logAccessFile.getMarker();
+	}
+
+	/**
+	 * 设置Marker文件值
+	 * 谨慎使用，系统会自动修改marker文件值，修改时，请确保程序已处理数据量等于参数值
+	 * 否则，将不能保证已处理缓存数据量等于marker文件中的记录数
+	 * 目前仅仅用于程序退出前需要手动调整marker值的情况
+	 * @param currentLine 已处理条数
+	 * @return
+     */
+	public void setMarker(long currentLine) throws IOException{
+		logAccessFile.changeMarker(currentLine);
+	}
 }
