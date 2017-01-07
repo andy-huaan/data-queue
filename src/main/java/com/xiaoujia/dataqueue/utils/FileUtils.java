@@ -38,13 +38,13 @@ public class FileUtils {
         File markFile = new File(fileName + Constants.MARKER_SUFFIX);
         if (markFile.exists()) {
             if (markFile.isFile() && markFile.canRead() && markFile.canWrite()) {
-                marker = new RandomAccessFile(markFile, "rw");
-                logAccessFile.initCurrentLine(marker.readLong());
+                marker = new RandomAccessFile(markFile, Constants.READ_WRITE);
+                logAccessFile.initcurrentPointer(marker.readLong());
             } else {
                 throw new IOException(fileName + ".mark 此文件异常");
             }
         } else {
-            marker = new RandomAccessFile(markFile, "rw");
+            marker = new RandomAccessFile(markFile, Constants.READ_WRITE);
             initMarker(marker,0);
         }
         return marker;
@@ -53,13 +53,13 @@ public class FileUtils {
     /**
      * 初始化marker文件信息
      * @param marker marker文件操作对象
-     * @param count 当前已处理行数
+     * @param currentPointer 当前操作偏移量
      * @throws IOException
      */
-    public synchronized static void initMarker(RandomAccessFile marker, long count) throws IOException{
+    public synchronized static void initMarker(RandomAccessFile marker, long currentPointer) throws IOException{
         //设置到此文件开头测量到的文件指针偏移量，在该位置发生下一个读取或写入操作
         marker.seek(0);
-        marker.writeLong(count);
+        marker.writeLong(currentPointer);
         //maker.writeBytes(count + "\r\n");
     }
 }

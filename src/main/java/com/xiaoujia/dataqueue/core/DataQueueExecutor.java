@@ -1,6 +1,5 @@
 package com.xiaoujia.dataqueue.core;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -30,6 +29,8 @@ public class DataQueueExecutor<T> implements Runnable {
 	//用于判断 Runnable 是否结束执行
 	private Future<?> future;
 	private boolean timeout = false;
+	//缓存文件编码
+	private String cacheFileEncoding;
 
 	/**
 	 * 构造写缓存文件调度器
@@ -37,11 +38,12 @@ public class DataQueueExecutor<T> implements Runnable {
 	 * @param clazz 缓存数据类的Class实例
 	 * @param maxCount 每次最多从缓存文件中取出的数据量
 	 * @param fileName 缓存文件名(也可以是全路径名)
+	 * @param cacheFileEncoding 缓存文件编码
      * @throws IOException
      */
 	public DataQueueExecutor(DataQueueListener<T> queueListener,Class<T> clazz,int maxCount,
-							 String fileName) throws IOException {
-		this(queueListener,clazz,maxCount);
+							 String fileName,String cacheFileEncoding) throws IOException {
+		this(queueListener,clazz,cacheFileEncoding,maxCount);
 		this.logAccessFile = new LogAccessFile(fileName);
 	}
 
@@ -51,13 +53,14 @@ public class DataQueueExecutor<T> implements Runnable {
 	 * @param clazz 缓存数据类的Class实例
 	 * @param maxCount 每次最多从缓存文件中取出的数据量
 	 * @param fileName 缓存文件名(也可以是全路径名)
+	 * @param cacheFileEncoding 缓存文件编码
 	 * @param maxSize 每个缓存文件大小，单位字节
 	 *
 	 * @throws IOException
 	 */
 	public DataQueueExecutor(DataQueueListener<T> queueListener,Class<T> clazz,int maxCount,
-							 String fileName, long maxSize) throws IOException {
-		this(queueListener,clazz,maxCount);
+							 String fileName,String cacheFileEncoding, long maxSize) throws IOException {
+		this(queueListener,clazz,cacheFileEncoding,maxCount);
 		this.logAccessFile = new LogAccessFile(fileName, maxSize);
 	}
 
@@ -67,21 +70,23 @@ public class DataQueueExecutor<T> implements Runnable {
 	 * @param clazz 缓存数据类的Class实例
 	 * @param maxCount 每次最多从缓存文件中取出的数据量
      * @param fileName 缓存文件名(也可以是全路径名)
+	 * @param cacheFileEncoding 缓存文件编码
      * @param maxSize 每个缓存文件大小，单位字节
      * @param delLog 是否删除读取过的缓存文件
      *
      * @throws IOException
      */
 	public DataQueueExecutor(DataQueueListener<T> queueListener,Class<T> clazz,int maxCount,
-							 String fileName, long maxSize, boolean delLog) throws IOException {
-		this(queueListener,clazz,maxCount);
+							 String fileName,String cacheFileEncoding, long maxSize, boolean delLog) throws IOException {
+		this(queueListener,clazz,cacheFileEncoding,maxCount);
 		this.logAccessFile = new LogAccessFile(fileName, maxSize, delLog);
 	}
 
 	//私有构造函数
-	private DataQueueExecutor(DataQueueListener<T> queueListener,Class<T> clazz,int maxCount){
+	private DataQueueExecutor(DataQueueListener<T> queueListener,Class<T> clazz,String cacheFileEncoding,int maxCount){
 		this.queueListener = queueListener;
 		this.clazz=clazz;
+		this.cacheFileEncoding = cacheFileEncoding;
 		this.maxCount = maxCount;
 		//创建对象锁
 		lock = new Object();
@@ -122,18 +127,12 @@ public class DataQueueExecutor<T> implements Runnable {
 	 */
 	public void run() {
 		long idel = 0;
-		List<T> list = new ArrayList<T>();
 		while (pool != null && !pool.isShutdown()) {
 			try {
 				while (logAccessFile.dataFileCheck()) { //判断缓存文件缓冲区中是否存在未处理数据
 					idel = System.currentTimeMillis();
 					timeout = false;
-					while (logAccessFile.dataFileCheck() && list.size() < maxCount) {
-						T str = logAccessFile.readLineFromJson(clazz);
-						if (str != null) {
-							list.add(str);
-						}
-					}
+					List<T> list = logAccessFile.readDatasFromJson(clazz,maxCount,cacheFileEncoding);
 					if (list.size() > 0) {
 						if (queueListener != null)
                             try {
@@ -182,10 +181,10 @@ public class DataQueueExecutor<T> implements Runnable {
 	 * 谨慎使用，系统会自动修改marker文件值，修改时，请确保程序已处理数据量等于参数值
 	 * 否则，将不能保证已处理缓存数据量等于marker文件中的记录数
 	 * 目前仅仅用于程序退出前需要手动调整marker值的情况
-	 * @param currentLine 已处理条数
+	 * @param currentPointer 已处理条数
 	 * @return
      */
-	public void setMarker(long currentLine) throws IOException{
-		logAccessFile.changeMarker(currentLine);
+	public void setMarker(long currentPointer) throws IOException{
+		logAccessFile.changeMarker(currentPointer);
 	}
 }

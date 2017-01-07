@@ -1,11 +1,14 @@
 package com.xiaoujia.dataqueue.core;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.xiaoujia.dataqueue.utils.BufferedRandomAccessFile;
 import com.xiaoujia.dataqueue.utils.Constants;
 import com.xiaoujia.dataqueue.utils.FileUtils;
 import java.io.*;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 /**
  * 数据读写缓存文件处理
@@ -27,13 +30,13 @@ public class LogAccessFile {
     //marker标记文件操作类
     private RandomAccessFile marker;
     //当前操作行
-    private long currentLine;
+    private long currentPointer;
     //当前操作的缓存文件
     private File currentFile;
     //写缓存文件操作类
     private FileWriter fileWriter;
     //读缓存文件操作类
-    private BufferedReader bufferedReader;
+    private BufferedRandomAccessFile fileReader;
     //JackSon操作类
     private ObjectMapper objectMapper;
 
@@ -86,12 +89,10 @@ public class LogAccessFile {
         //打开缓存文件
         this.currentFile = new File(fileName);
         this.fileWriter = new FileWriter(currentFile, true);
-        this.bufferedReader = new BufferedReader(new FileReader(currentFile));
+        this.fileReader = new BufferedRandomAccessFile(currentFile,Constants.READ);
 
-        //跳到mark的已读的位置，TODO：marker越大，开销越大，待优化
-        for (int i = 0; i < currentLine && bufferedReader.ready(); i++) {
-            bufferedReader.readLine();
-        }
+        //跳到mark标记的已读位置
+        fileReader.seek(currentPointer);
     }
 
     //初始化Jackson配置
@@ -109,18 +110,18 @@ public class LogAccessFile {
     synchronized public boolean dataFileCheck() throws IOException {
         //判断此流是否已准备好被读取
         //如果缓冲区有内容，返回true，否则为false
-        boolean ready = bufferedReader.ready();
+        boolean ready = fileReader.length() != fileReader.getFilePointer();
         if (!ready) {
             if (currentFile.length() > maxSize) {
                 synchronized (lock) {
-                    if (bufferedReader.ready()){ //防止前后两次ready()之间又有内容写入数据文件
+                    if (fileReader.length() != fileReader.getFilePointer()){ //防止前后两次ready()之间又有内容写入数据文件
                         return true;
                     }else{
                         fileWriter.close();
-                        bufferedReader.close();
+                        fileReader.close();
                         renameOrDeleteFile();
                         fileWriter = new FileWriter(currentFile, true);
-                        bufferedReader = new BufferedReader(new FileReader(currentFile));
+                        fileReader = new BufferedRandomAccessFile(currentFile,Constants.READ);
                     }
                 }
             }
@@ -135,10 +136,10 @@ public class LogAccessFile {
         } else {
             renameFile();
         }
-        currentLine = 0;
+        currentPointer = 0;
         while (true) {
             try {
-                FileUtils.initMarker(marker,currentLine);
+                FileUtils.initMarker(marker, currentPointer);
                 break;
             } catch (IOException e) {
                 System.out.println("计数mark归零失败" + e.getMessage());
@@ -218,21 +219,17 @@ public class LogAccessFile {
      * @return
      * @throws IOException
      */
-    public <T> T readLineFromJson(Class<T> tClass) throws IOException {
-        return objectMapper.readValue(readLine(), tClass);
-    }
-    /**
-     * 从缓存文件中读取数据并记录行号
-     * @return
-     * @throws IOException
-     */
-    public String readLine() throws IOException {
-        String str = null;
-        if (dataFileCheck()) {
-            str = bufferedReader.readLine();
-            currentLine++;
+    public <T> List<T> readDatasFromJson(Class<T> tClass,int maxCount,String encode) throws IOException {
+        List<T> list = new ArrayList<>();
+        while (dataFileCheck() && list.size() < maxCount) {
+            String line = fileReader.readLine();
+            if (line != null && !"".equals(line)) { //如果为空则跳过此行
+                line = new String(line.getBytes(Constants.ENCODE_ISO), encode);
+                list.add(objectMapper.readValue(line, tClass));
+            }
         }
-        return str;
+        currentPointer = fileReader.getFilePointer();
+        return list;
     }
 
     /**
@@ -240,23 +237,23 @@ public class LogAccessFile {
      * @throws IOException
      */
     public void changeMarker() throws IOException {
-        changeMarker(currentLine);
+        changeMarker(currentPointer);
     }
 
     /**
      * 更改marker计数器值
-     * @param currentLine
+     * @param currentPointer
      */
-    public void changeMarker(long currentLine) throws IOException{
-        FileUtils.initMarker(marker,currentLine);
+    public void changeMarker(long currentPointer) throws IOException{
+        FileUtils.initMarker(marker,currentPointer);
     }
 
     /**
-     * 启动时，利用marker文件记录数，初始化currentLine
-     * @param currentLine
+     * 启动时，利用marker文件记录数，初始化currentPointer
+     * @param currentPointer
      */
-    public void initCurrentLine(long currentLine){
-        this.currentLine = currentLine;
+    public void initcurrentPointer(long currentPointer){
+        this.currentPointer = currentPointer;
     }
 
     /**

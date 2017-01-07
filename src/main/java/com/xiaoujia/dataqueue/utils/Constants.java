@@ -19,4 +19,13 @@ public class Constants {
 
     //marker文件后缀名(扩展名)
     public static final String MARKER_SUFFIX = ".marker";
+
+    //文件操作权限：只读
+    public static final String READ = "r";
+
+    //文件操作权限：读写
+    public static final String READ_WRITE = "rw";
+
+    //文件编码：ISO-8859-1
+    public static final String ENCODE_ISO = "ISO-8859-1";
 }
