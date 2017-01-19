@@ -1,7 +1,25 @@
 apply plugin: 'java'
 
+//引入插件:将自定义类库发布到jcenter必需的
+apply plugin: 'com.novoda.bintray-release'
+publish {
+    userOrg = 'andy-huaan' // 用户所在组织，填用户名即可
+    groupId = 'com.xiaoujia.dataqueue' // 包名
+    artifactId = 'data-queue'// library的名字,与服务器配置一致
+    publishVersion = '1.2.0' // 版本
+    desc = 'This is a data persistence Java tool library, Support Concurrent execution and Will not lose data; Support MySql,MariaDB,SqlServer,Mongodb,Oracle, etc.' // library描述,可以在官网建立的空类库上找到
+    website = 'https://github.com/andy-huaan/data-queue' //网站
+}
+
+compileJava {
+    options.encoding = "UTF-8"
+    //sourceCompatibility = 1.8
+    //targetCompatibility = 1.8
+}
+
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.8.1'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.8.1'
 }
+
