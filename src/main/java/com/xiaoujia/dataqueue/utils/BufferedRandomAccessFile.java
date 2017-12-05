@@ -7,7 +7,7 @@ import java.util.Arrays;
 
 /**
  * 高效读取大数据文本文件
- * Created by Andy
+ * Created by 赵华安(Andy)
  * email zhaohuaan0925@163.com
  * created 2017/1/7 16:15
  * RandomAccessFile + 内部缓冲区实现

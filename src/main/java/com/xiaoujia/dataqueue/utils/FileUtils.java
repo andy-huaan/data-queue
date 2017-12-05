@@ -8,7 +8,7 @@ import java.io.RandomAccessFile;
 
 /**
  * 文件操作工具类
- * Created by Andy
+ * Created by 赵华安(Andy)
  * email zhaohuaan0925@163.com
  * created 2017/1/5 14:05
  */
